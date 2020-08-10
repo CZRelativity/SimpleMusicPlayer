@@ -28,36 +28,36 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener{
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    ImageView nextIv,playIv,lastIv,albumIv;
-    TextView singerTv,songTv;
+    ImageView nextIv, playIv, lastIv, albumIv;
+    TextView singerTv, songTv;
     RecyclerView musicRv;
 
     List<MusicBean> musicData;
     private MusicAdapter musicAdapter;
 
-    private int currentPosition=-1;
-    MediaPlayer mediaPlayer=new MediaPlayer();
+    private int currentPosition = -1;
+    MediaPlayer mediaPlayer = new MediaPlayer();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)!= PackageManager.PERMISSION_GRANTED){
-            ActivityCompat.requestPermissions(MainActivity.this,new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},1);
-        }else {
-            initView();
-        }
-        musicData=new ArrayList<>();
+        initView();
+        musicData = new ArrayList<>();
         //创建适配器对象
-        musicAdapter=new MusicAdapter(this,musicData);//因为之后会涉及到数据源的更新，所以这里要作为成员变量来写
+        musicAdapter = new MusicAdapter(this, musicData);//因为之后会涉及到数据源的更新，所以这里要作为成员变量来写
         musicRv.setAdapter(musicAdapter);
         //设置布局管理器
-        musicRv.setLayoutManager(new LinearLayoutManager(this,RecyclerView.VERTICAL,false));
+        musicRv.setLayoutManager(new LinearLayoutManager(this, RecyclerView.VERTICAL, false));
         //加载本地数据源
-        loadMusicData();
-        //设置每一项的点击事件
+        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+        } else {
+            loadMusicData();
+        }
+//        设置每一项的点击事件
         setEventListener();
     }
 
@@ -65,8 +65,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         musicAdapter.setOnItemClickListener(new MusicAdapter.OnItemClickListener() {
             @Override
             public void OnItemClick(View view, int position) {
-                currentPosition=position;
-                MusicBean musicBean=musicData.get(position);
+                currentPosition = position;
+                MusicBean musicBean = musicData.get(position);
                 singerTv.setText(musicBean.getSinger());
                 songTv.setText(musicBean.getSong());
                 stopMusic();
@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void playMusic() {
-        if (mediaPlayer!=null&&!mediaPlayer.isPlaying()) {
+        if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
             try {
                 mediaPlayer.prepare();
                 mediaPlayer.start();
@@ -94,45 +94,47 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void stopMusic() {
         /* 停止播放音乐 */
-        if(mediaPlayer!=null){
+        if (mediaPlayer != null) {
             mediaPlayer.reset();
         }
     }
 
-    private void loadMusicData(){//加载本地存储当中的mp3音乐文件到集合当中
+    private void loadMusicData() {//加载本地存储当中的mp3音乐文件到集合当中
         //1.获取ContentResolver对象
-        ContentResolver resolver=getContentResolver();
+        ContentResolver resolver = getContentResolver();
         //2.获取本地音乐存储的Uri地址
-        Uri uri= MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;//外部存储
+        Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;//外部存储
         //3.开始查询地址
-        Cursor cursor=resolver.query(uri,null,null,null,null,null);//projection投影
+        Cursor cursor = resolver.query(uri, null, null, null, null, null);//projection投影
         //4.遍历Cursor
-        int id=0;
-        while(cursor.moveToNext()){
-            String song=cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
-            String singer=cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST));
-            String album=cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
-            Long duration=cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION));
-            SimpleDateFormat sdf=new SimpleDateFormat("mm:ss");
-            String time=sdf.format(new Date(duration));
-            String path=cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.RELATIVE_PATH));
-            id++;
-            //5.将所有元素封装到对象中
-            MusicBean bean=new MusicBean(id,song,singer,album,time,path);
-            musicData.add(bean);
+        int id = 0;
+        if (cursor != null && cursor.moveToFirst()) {
+            do {
+                String song = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
+                String singer = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST));
+                String album = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
+                Long duration = cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION));
+                SimpleDateFormat sdf = new SimpleDateFormat("mm:ss");
+                String time = sdf.format(new Date(duration));
+                String path = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.RELATIVE_PATH));
+                id++;
+                //5.将所有元素封装到对象中
+                MusicBean bean = new MusicBean(id, song, singer, album, time, path);
+                musicData.add(bean);
+            } while (cursor.moveToNext());
         }
         //数据源变化，提示Adapter更新
         musicAdapter.notifyDataSetChanged();
     }
 
-    private void initView(){
-        lastIv=findViewById(R.id.bottom_iv_last);
-        nextIv=findViewById(R.id.bottom_iv_next);
-        playIv=findViewById(R.id.bottom_iv_play);
-        albumIv=findViewById(R.id.bottom_iv_album);
-        songTv=findViewById(R.id.bottom_tv_song);
-        singerTv=findViewById(R.id.bottom_tv_singer);
-        musicRv=findViewById(R.id.music_rv);
+    private void initView() {
+        lastIv = findViewById(R.id.bottom_iv_last);
+        nextIv = findViewById(R.id.bottom_iv_next);
+        playIv = findViewById(R.id.bottom_iv_play);
+        albumIv = findViewById(R.id.bottom_iv_album);
+        songTv = findViewById(R.id.bottom_tv_song);
+        singerTv = findViewById(R.id.bottom_tv_singer);
+        musicRv = findViewById(R.id.music_rv);
         lastIv.setOnClickListener(this);//需要传入一个OnClickListener，可以new一个匿名内部类，也可以像这样用this去实现接口
         nextIv.setOnClickListener(this);
         playIv.setOnClickListener(this);
@@ -159,7 +161,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onClick(View v) {
-        switch(v.getId()){
+        switch (v.getId()) {
             case R.id.bottom_iv_last:
 
                 break;
