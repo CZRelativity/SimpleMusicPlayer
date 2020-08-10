@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -28,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener,MediaPlayer.OnPreparedListener{
 
     ImageView nextIv, playIv, lastIv, albumIv;
     TextView singerTv, songTv;
@@ -58,6 +59,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             loadMusicData();
         }
 //        设置每一项的点击事件
+        mediaPlayer.setOnPreparedListener(this);
         setEventListener();
     }
 
@@ -71,7 +73,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 songTv.setText(musicBean.getSong());
                 stopMusic();
                 try {
+//                    mediaPlayer.setDataSource(getApplicationContext(),musicBean.getUri());
                     mediaPlayer.setDataSource(musicBean.getPath());
+//                    mediaPlayer.prepare();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -82,13 +86,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void playMusic() {
         if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
-            try {
-                mediaPlayer.prepare();
-                mediaPlayer.start();
-                playIv.setImageResource(R.mipmap.icon_pause);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+//            mediaPlayer.start();
+//            playIv.setImageResource(R.mipmap.icon_pause);
+            mediaPlayer.prepareAsync();//当在主线程中使用MediaPlayer时，应该调用prepareAsync()而非prepare()，并实现MediaPlayer.OnPreparedListener,在准备就绪后
+            // 会调用OnPrepared()方法。否则会导致界面挂起，直到系统返回该方法。因为prepare()可能会涉及获取和解码媒体数据，对于任何可能需要很长时间执行的方法，都应避免从主线程中调用
         }
     }
 
@@ -116,10 +117,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Long duration = cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION));
                 SimpleDateFormat sdf = new SimpleDateFormat("mm:ss");
                 String time = sdf.format(new Date(duration));
-                String path = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.RELATIVE_PATH));
+                String path = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
+//                Uri contentUri= ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,cursor.getColumnIndex(MediaStore.Audio.Media._ID));
                 id++;
                 //5.将所有元素封装到对象中
                 MusicBean bean = new MusicBean(id, song, singer, album, time, path);
+//                MusicBean bean=new MusicBean(id,song,singer,album,time,contentUri);
                 musicData.add(bean);
             } while (cursor.moveToNext());
         }
@@ -144,6 +147,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onDestroy() {
         super.onDestroy();
         stopMusic();
+        if(mediaPlayer!=null){
+            mediaPlayer.release();
+        }
     }
 
     @Override
@@ -172,5 +178,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 break;
         }
+    }
+
+    @Override
+    public void onPrepared(MediaPlayer mp) {
+        mp.start();
+        playIv.setImageResource(R.mipmap.icon_pause);
     }
 }

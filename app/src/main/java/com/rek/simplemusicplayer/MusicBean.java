@@ -1,5 +1,7 @@
 package com.rek.simplemusicplayer;
 
+import android.net.Uri;
+
 public class MusicBean {
 
     private int id;
@@ -8,8 +10,18 @@ public class MusicBean {
     private String album;
     private String time;
     private String path;
+//    private Uri uri;
 
-    public MusicBean(int id, String song, String singer, String album, String time, String path) {
+//    public MusicBean(int id, String song, String singer, String album, String time, Uri uri) {
+//        this.id = id;
+//        this.song = song;
+//        this.singer = singer;
+//        this.album = album;
+//        this.time = time;
+//        this.uri = uri;
+//    }
+
+        public MusicBean(int id, String song, String singer, String album, String time, String path) {
         this.id = id;
         this.song = song;
         this.singer = singer;
@@ -25,6 +37,15 @@ public class MusicBean {
     public void setPath(String path) {
         this.path = path;
     }
+
+
+//    public Uri getUri() {
+//        return uri;
+//    }
+//
+//    public void setUri(Uri uri) {
+//        this.uri = uri;
+//    }
 
     public int getId() {
         return id;
