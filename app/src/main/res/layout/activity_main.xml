@@ -28,7 +28,7 @@
             android:layout_centerVertical="true"
             android:src="@mipmap/icon_song"
             android:background="@mipmap/a1"
-            android:layout_marginStart="10dp"/>
+            android:layout_marginStart="5dp"/>
         <TextView
             android:id="@+id/bottom_tv_song"
             android:layout_width="wrap_content"
@@ -38,7 +38,7 @@
             android:textStyle="bold"
             android:layout_toEndOf="@id/bottom_iv_album"
             android:layout_marginTop="10dp"
-            android:layout_marginStart="10dp"/>
+            android:layout_marginStart="5dp"/>
         <TextView
             android:id="@+id/bottom_tv_singer"
             android:layout_width="wrap_content"
@@ -47,8 +47,8 @@
             android:layout_below="@id/bottom_tv_song"
             android:textSize="12sp"
             android:text="周杰伦"
-            android:layout_marginTop="10dp"
-            android:layout_marginStart="10dp"/>
+            android:layout_marginTop="8dp"
+            android:layout_marginStart="5dp"/>
         <ImageView
             android:id="@+id/bottom_iv_next"
             android:layout_width="wrap_content"

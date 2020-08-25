@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener,MediaPlayer.OnPreparedListener{
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, MediaPlayer.OnPreparedListener {
 
     ImageView nextIv, playIv, lastIv, albumIv;
     TextView singerTv, songTv;
@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private int currentPosition = -1;
     private MusicBean musicBean;
     MediaPlayer mediaPlayer = new MediaPlayer();
-    private boolean isPaused=false;
+    private int pausedPosition = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
     }
 
-    private void prepareMusic(){
+    private void prepareMusic() {
         musicBean = musicData.get(currentPosition);
         singerTv.setText(musicBean.getSinger());
         songTv.setText(musicBean.getSong());
@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void playMusic() {
-        if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
+        if (!mediaPlayer.isPlaying()) {
 //            mediaPlayer.start();
 //            playIv.setImageResource(R.mipmap.icon_pause);
             mediaPlayer.prepareAsync();
@@ -104,9 +104,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void resetMusic() {
         /* 停止播放音乐 */
-        if (mediaPlayer != null) {
-            mediaPlayer.reset();
-        }
+        mediaPlayer.reset();
     }
 
     private void loadMusicData() {//加载本地存储当中的mp3音乐文件到集合当中
@@ -155,7 +153,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if(mediaPlayer!=null){
+        if (mediaPlayer != null) {
             mediaPlayer.stop();
             mediaPlayer.release();
         }
@@ -179,49 +177,51 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (v.getId()) {
             case R.id.bottom_iv_last:
                 /*重新注入dataSource,而且是按从musicData里面的顺序,如果超出了第一个就返回最后
-                * 状态是play的话应该直接开始播放,状态是pause的话不播放只切换,下曲同理
-                * 需要记录这个状态,还希望最好下次点进来的时候可以加载之前退出的时候播放的歌曲*/
-                if(mediaPlayer!=null){
-                    if(currentPosition==0){
-                        currentPosition=musicData.size()-1;
-                    }else{
+                 * 状态是play的话应该直接开始播放,状态是pause的话不播放只切换,下曲同理
+                 * 需要记录这个状态,还希望最好下次点进来的时候可以加载之前退出的时候播放的歌曲*/
+                if (currentPosition != -1) {
+                    if (currentPosition == 0) {
+                        currentPosition = musicData.size() - 1;
+                    } else {
                         currentPosition--;
                     }
-                    if(mediaPlayer.isPlaying()){
+                    if (mediaPlayer.isPlaying()) {
                         prepareMusic();
                         playMusic();
-                    }else{
+                    } else {
                         prepareMusic();
                     }
                 }
                 break;
             case R.id.bottom_iv_play:
-                if(mediaPlayer!=null){
-                    if (mediaPlayer.isPlaying()){
+                if (currentPosition != -1) {
+                    /*之前的问题修复了，问题原因主要有两个
+                    1、不能用mediaPlayer!=null来做进入条件，不然基本是必进入的，意思只要mediaPlayer初始化了就不等于null了，用来判断释放资源还好说，其他的都不能用这个去判断
+                    2、用一个布尔来判断也太僵了，改了以后就舒服多了
+                    3、if...else if还是不用挨着break的，吓*/
+                    if (mediaPlayer.isPlaying()) {
                         mediaPlayer.pause();
                         playIv.setImageResource(R.mipmap.icon_play);
-                        isPaused=true;
-                    }else if(isPaused){
+                        pausedPosition = currentPosition;
+                    } else if (pausedPosition == currentPosition) {
                         mediaPlayer.start();
                         playIv.setImageResource(R.mipmap.icon_pause);
-                        isPaused=false;
-                    }else {
+                    } else {
                         playMusic();
                     }
+                    break;
                 }
-                break;
             case R.id.bottom_iv_next:
-                if(mediaPlayer!=null){
-                    if(currentPosition==musicData.size()-1){
-                        currentPosition=0;
-                    }else{
+                if (currentPosition != -1) {
+                    if (currentPosition == musicData.size() - 1) {
+                        currentPosition = 0;
+                    } else {
                         currentPosition++;
                     }
-                    if(mediaPlayer.isPlaying()){
+                    if (mediaPlayer.isPlaying()) {
                         prepareMusic();
                         playMusic();
-                    }
-                    else{
+                    } else {
                         prepareMusic();
                     }
                 }
@@ -235,6 +235,5 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onPrepared(MediaPlayer mp) {
         mp.start();
         playIv.setImageResource(R.mipmap.icon_pause);
-        isPaused=false;
     }
 }
