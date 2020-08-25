@@ -39,7 +39,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private MusicAdapter musicAdapter;
 
     private int currentPosition = -1;
+    private MusicBean musicBean;
     MediaPlayer mediaPlayer = new MediaPlayer();
+    private boolean isPaused=false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,13 +54,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         musicRv.setAdapter(musicAdapter);
         //设置布局管理器
         musicRv.setLayoutManager(new LinearLayoutManager(this, RecyclerView.VERTICAL, false));
-        //加载本地数据源
+        //加载本地数据源,增加动态获取权限，注意动态获取权限的判断要放在initView以后，否则无法闪退无法进入界面
         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
         } else {
             loadMusicData();
         }
-//        设置每一项的点击事件
+        //设置每一项的点击事件
         mediaPlayer.setOnPreparedListener(this);
         setEventListener();
     }
@@ -68,32 +70,39 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void OnItemClick(View view, int position) {
                 currentPosition = position;
-                MusicBean musicBean = musicData.get(position);
-                singerTv.setText(musicBean.getSinger());
-                songTv.setText(musicBean.getSong());
-                stopMusic();
-                try {
-//                    mediaPlayer.setDataSource(getApplicationContext(),musicBean.getUri());
-                    mediaPlayer.setDataSource(musicBean.getPath());
-//                    mediaPlayer.prepare();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                resetMusic();
+                prepareMusic();
                 playMusic();
             }
         });
+    }
+
+    private void prepareMusic(){
+        musicBean = musicData.get(currentPosition);
+        singerTv.setText(musicBean.getSinger());
+        songTv.setText(musicBean.getSong());
+        resetMusic();
+        try {
+            //mediaPlayer.setDataSource(getApplicationContext(),musicBean.getUri());
+            mediaPlayer.setDataSource(musicBean.getPath());
+            //mediaPlayer.prepare();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void playMusic() {
         if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
 //            mediaPlayer.start();
 //            playIv.setImageResource(R.mipmap.icon_pause);
-            mediaPlayer.prepareAsync();//当在主线程中使用MediaPlayer时，应该调用prepareAsync()而非prepare()，并实现MediaPlayer.OnPreparedListener,在准备就绪后
-            // 会调用OnPrepared()方法。否则会导致界面挂起，直到系统返回该方法。因为prepare()可能会涉及获取和解码媒体数据，对于任何可能需要很长时间执行的方法，都应避免从主线程中调用
+            mediaPlayer.prepareAsync();
+            //当在主线程中使用MediaPlayer时，应该调用prepareAsync()而非prepare()，并实现MediaPlayer.OnPreparedListener,在准备就绪后
+            //会调用OnPrepared()方法。否则会导致界面挂起，直到系统返回该方法。因为prepare()可能会涉及获取和解码媒体数据，对于任何可能需要很
+            //长时间执行的方法，都应避免从主线程中调用
         }
     }
 
-    private void stopMusic() {
+    private void resetMusic() {
         /* 停止播放音乐 */
         if (mediaPlayer != null) {
             mediaPlayer.reset();
@@ -146,8 +155,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        stopMusic();
         if(mediaPlayer!=null){
+            mediaPlayer.stop();
             mediaPlayer.release();
         }
     }
@@ -169,13 +178,55 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.bottom_iv_last:
-
+                /*重新注入dataSource,而且是按从musicData里面的顺序,如果超出了第一个就返回最后
+                * 状态是play的话应该直接开始播放,状态是pause的话不播放只切换,下曲同理
+                * 需要记录这个状态,还希望最好下次点进来的时候可以加载之前退出的时候播放的歌曲*/
+                if(mediaPlayer!=null){
+                    if(currentPosition==0){
+                        currentPosition=musicData.size()-1;
+                    }else{
+                        currentPosition--;
+                    }
+                    if(mediaPlayer.isPlaying()){
+                        prepareMusic();
+                        playMusic();
+                    }else{
+                        prepareMusic();
+                    }
+                }
                 break;
             case R.id.bottom_iv_play:
-
+                if(mediaPlayer!=null){
+                    if (mediaPlayer.isPlaying()){
+                        mediaPlayer.pause();
+                        playIv.setImageResource(R.mipmap.icon_play);
+                        isPaused=true;
+                    }else if(isPaused){
+                        mediaPlayer.start();
+                        playIv.setImageResource(R.mipmap.icon_pause);
+                        isPaused=false;
+                    }else {
+                        playMusic();
+                    }
+                }
                 break;
             case R.id.bottom_iv_next:
-
+                if(mediaPlayer!=null){
+                    if(currentPosition==musicData.size()-1){
+                        currentPosition=0;
+                    }else{
+                        currentPosition++;
+                    }
+                    if(mediaPlayer.isPlaying()){
+                        prepareMusic();
+                        playMusic();
+                    }
+                    else{
+                        prepareMusic();
+                    }
+                }
+                break;
+            default:
                 break;
         }
     }
@@ -184,5 +235,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onPrepared(MediaPlayer mp) {
         mp.start();
         playIv.setImageResource(R.mipmap.icon_pause);
+        isPaused=false;
     }
 }
